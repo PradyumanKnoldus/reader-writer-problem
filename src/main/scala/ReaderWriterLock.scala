@@ -1,7 +1,7 @@
 package com.knoldus
 
 import java.util.concurrent.locks.{ReadWriteLock, ReentrantReadWriteLock}
-import scala.util.Try
+import scala.util.{Failure, Try}
 
 class ReaderWriterLock {
   // Create a new ReentrantReadWriteLock with fairness enabled
@@ -19,9 +19,15 @@ class ReaderWriterLock {
   // Acquire the write lock and execute the operation, returning a Try that encapsulates the result
   def withWriteLock[T](operation: => T): Try[T] = {
     val writeLock = lock.writeLock()
-    writeLock.lock() // Acquire the write lock
-    val result = Try(operation)
-    writeLock.unlock()
-    result
+
+    if (writeLock.tryLock()) {
+      // Successfully acquired the write lock
+      val result = Try(operation)
+      writeLock.unlock()
+      result
+    } else {
+      // Failed to acquire the write lock, return a Failure
+      Failure(new RuntimeException("Failed to acquire write lock"))
+    }
   }
 }
